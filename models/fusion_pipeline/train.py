@@ -125,6 +125,10 @@ class LateFusionModel(nn.Module):
         fused = self.fusion_fc(fused)            # (batch, 256)
         return self.classifier(fused)            # (batch, 7)
 
+import os
+model_dir = "/content/drive/MyDrive/tess_models_fusion"
+os.makedirs(model_dir, exist_ok=True)
+
 # ── Training ──
 model     = LateFusionModel().to(device)
 criterion = nn.CrossEntropyLoss()
@@ -158,7 +162,10 @@ for epoch in range(1, 21):
 
     if val_acc > best_val_acc:
         best_val_acc = val_acc
-        torch.save(model.state_dict(), "best_fusion_model.pt")
+        torch.save(
+            model.state_dict(),
+            f"{model_dir}/hubert_bilstm_bert_latefusion_tess.pth"
+        )
         print(f"Epoch {epoch:2d} | Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}  ← Best saved")
     else:
         print(f"Epoch {epoch:2d} | Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}")

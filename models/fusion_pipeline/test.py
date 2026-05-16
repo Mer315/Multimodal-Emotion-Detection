@@ -84,7 +84,12 @@ def make_fusion_loader(X_speech, X_text, y, batch_size=32, shuffle=False):
 
 test_loader  = make_fusion_loader(X_test_speech,  X_test_text,  y_test)
 # ── Test evaluation ──
-model.load_state_dict(torch.load("best_fusion_model.pt"))
+model_dir = "/content/drive/MyDrive/tess_models_fusion"
+model.load_state_dict(
+    torch.load(
+        f"{model_dir}/hubert_bilstm_bert_latefusion_tess.pth"
+    )
+)
 model.eval()
 
 all_preds, all_labels = [], []

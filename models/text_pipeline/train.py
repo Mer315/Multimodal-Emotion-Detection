@@ -220,6 +220,10 @@ model     = TextClassifier().to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
 
+import os
+model_dir = "/content/drive/MyDrive/tess_models_text"
+os.makedirs(model_dir, exist_ok=True)
+
 # ── Training loop ──
 best_val_acc = 0.0
 emotion_names = ['angry','disgust','fear','happy','neutral','ps','sad']
@@ -252,7 +256,10 @@ for epoch in range(1, 21):
 
     if val_acc > best_val_acc:
         best_val_acc = val_acc
-        torch.save(model.state_dict(), "best_text_model.pt")
+        torch.save(
+            model.state_dict(),
+            f"{model_dir}/bert_fc_text_only_tess.pth"
+        )
         print(f"Epoch {epoch:2d} | Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}  ← Best saved")
     else:
         print(f"Epoch {epoch:2d} | Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}")

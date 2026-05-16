@@ -55,7 +55,12 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
 emotion_names = ['angry','disgust','fear','happy','neutral','ps','sad']
 
 # ── Test evaluation ──
-model.load_state_dict(torch.load("best_text_model.pt"))
+model_dir = "/content/drive/MyDrive/tess_models_text"
+model.load_state_dict(
+    torch.load(
+        f"{model_dir}/bert_fc_text_only_tess.pth"
+    )
+)
 model.eval()
 
 all_preds, all_labels = [], []
