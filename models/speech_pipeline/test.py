@@ -288,4 +288,150 @@ print(
     )
 )
 
-#--------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------
+
+#HuBERT evaluation
+
+#CNN
+
+encoder = CNN1DEncoder(input_dim=768)
+
+model = EmotionClassifier(encoder)
+
+model.to(device)
+# Load best saved model and evaluate on test set
+model.load_state_dict(torch.load("/content/drive/MyDrive/tess_models_hubert/cnnhubert.pth"))
+
+model.eval()
+
+all_preds = []
+all_labels = []
+
+with torch.no_grad():
+
+    for X_batch, y_batch in test_loader:
+
+        outputs = model(X_batch.to(device))
+
+        preds = outputs.argmax(dim=1).cpu().numpy()
+
+        all_preds.extend(preds)
+
+        all_labels.extend(y_batch.numpy())
+
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix
+)
+
+print(
+    classification_report(
+        all_labels,
+        all_preds,
+        target_names=[
+            'angry',
+            'disgust',
+            'fear',
+            'happy',
+            'neutral',
+            'ps',
+            'sad'
+        ]
+    )
+)
+
+#BiLSTM
+
+encoder = BiLSTMEncoder(input_dim=768)
+
+model = EmotionClassifier(encoder)
+
+model.to(device)
+
+model.load_state_dict(torch.load("/content/drive/MyDrive/tess_models_hubert/bilstm_hubert.pth"))
+
+model.eval()
+
+all_preds = []
+all_labels = []
+
+with torch.no_grad():
+
+    for X_batch, y_batch in test_loader:
+
+        outputs = model(X_batch.to(device))
+
+        preds = outputs.argmax(dim=1).cpu().numpy()
+
+        all_preds.extend(preds)
+
+        all_labels.extend(y_batch.numpy())
+
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix
+)
+
+print(
+    classification_report(
+        all_labels,
+        all_preds,
+        target_names=[
+            'angry',
+            'disgust',
+            'fear',
+            'happy',
+            'neutral',
+            'ps',
+            'sad'
+        ]
+    )
+)
+
+#SELF ATTENTION
+
+encoder = AttentionPooling(input_dim=768)
+
+model = EmotionClassifier(encoder)
+
+model.to(device)
+
+model.load_state_dict(torch.load("/content/drive/MyDrive/tess_models_hubert/attention_hubert.pth"))
+
+model.eval()
+
+all_preds = []
+all_labels = []
+
+with torch.no_grad():
+
+    for X_batch, y_batch in test_loader:
+
+        outputs = model(X_batch.to(device))
+
+        preds = outputs.argmax(dim=1).cpu().numpy()
+
+        all_preds.extend(preds)
+
+        all_labels.extend(y_batch.numpy())
+
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix
+)
+
+print(
+    classification_report(
+        all_labels,
+        all_preds,
+        target_names=[
+            'angry',
+            'disgust',
+            'fear',
+            'happy',
+            'neutral',
+            'ps',
+            'sad'
+        ]
+    )
+)
