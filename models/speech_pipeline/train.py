@@ -483,7 +483,8 @@ import gc
 from tqdm import tqdm
 from transformers import HubertModel, AutoFeatureExtractor
 from sklearn.model_selection import train_test_split
-from google.colab import drive
+from google.colab import drive 
+#dataset is large so we will use google drive to store features and models and train on colab gpu
 
 drive.mount('/content/drive')
 
