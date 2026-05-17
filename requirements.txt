@@ -4,6 +4,8 @@ numpy
 pandas
 scikit-learn
 soundfile
+matplotlib
+seaborn
 torch
 tqdm
 transformers
