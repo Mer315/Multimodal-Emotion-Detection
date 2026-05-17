@@ -72,3 +72,45 @@ with torch.no_grad():
 
 print("\nText-only Test Results:")
 print(classification_report(all_labels, all_preds, target_names=emotion_names))
+
+#============================================================================================
+
+#speaker level split evaluation
+bert_dir   = "/content/drive/MyDrive/tess_speaker_bert"
+
+def run_test(model, test_loader, save_path, label):
+    model.load_state_dict(torch.load(save_path))
+    model.eval()
+    preds, labels = [], []
+    with torch.no_grad():
+        for batch in test_loader:
+            inputs, y_b = batch[:-1], batch[-1]
+            inputs = [x.to(device) for x in inputs]
+            preds.extend(model(*inputs).argmax(1).cpu().numpy())
+            labels.extend(y_b.numpy())
+    print(f"\n{'='*50}\nTEST RESULTS — {label}\n{'='*50}")
+    print(classification_report(labels, preds, target_names=emotion_names))
+
+X_vl = torch.tensor(np.array(np.memmap(f"{bert_dir}/X_val.npy",   dtype='float32', mode='r', shape=(700,768))),  dtype=torch.float32)
+y_vl = torch.tensor(np.array(np.memmap(f"{bert_dir}/y_val.npy",   dtype='int32',   mode='r', shape=(700,))),    dtype=torch.long)
+X_te = torch.tensor(np.array(np.memmap(f"{bert_dir}/X_test.npy",  dtype='float32', mode='r', shape=(700,768))),  dtype=torch.float32)
+y_te = torch.tensor(np.array(np.memmap(f"{bert_dir}/y_test.npy",  dtype='int32',   mode='r', shape=(700,))),    dtype=torch.long)
+
+val_loader   = make_loader([X_vl, y_vl])
+test_loader  = make_loader([X_te, y_te])
+
+class TextClassifier(nn.Module):
+    def __init__(self, input_dim=768, num_classes=7):
+        super().__init__()
+        self.classifier = nn.Sequential(
+            nn.Linear(input_dim, 256), nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(256, 128),       nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(128, num_classes)
+        )
+    def forward(self, x):
+        return self.classifier(x)
+
+model_text = TextClassifier().to(device)
+
+run_test(model_text, test_loader,
+         f"{model_dir}/best_speaker_text.pt", "Text BERT (Speaker-level)")

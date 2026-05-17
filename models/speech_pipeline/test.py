@@ -435,3 +435,99 @@ print(
         ]
     )
 )
+
+#=======================================================================
+
+#speaker level metadata analysis
+
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import classification_report
+
+device        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+emotion_names = ['angry','disgust','fear','happy','neutral','ps','sad']
+
+mfcc_dir   = "/content/drive/MyDrive/tess_speaker_mfcc_aug"
+hubert_dir = "/content/drive/MyDrive/tess_speaker_hubert"
+bert_dir   = "/content/drive/MyDrive/tess_speaker_bert"
+model_dir  = "/content/drive/MyDrive/tess_speaker_models"
+
+def run_test(model, test_loader, save_path, label):
+    model.load_state_dict(torch.load(save_path))
+    model.eval()
+    preds, labels = [], []
+    with torch.no_grad():
+        for batch in test_loader:
+            inputs, y_b = batch[:-1], batch[-1]
+            inputs = [x.to(device) for x in inputs]
+            preds.extend(model(*inputs).argmax(1).cpu().numpy())
+            labels.extend(y_b.numpy())
+    print(f"\n{'='*50}\nTEST RESULTS — {label}\n{'='*50}")
+    print(classification_report(labels, preds, target_names=emotion_names))
+
+def make_loader(tensors, batch_size=32, shuffle=False):
+    return DataLoader(TensorDataset(*tensors), batch_size=batch_size, shuffle=shuffle)
+
+#MFCC + CNN 
+
+X_vl = torch.tensor(np.load(f"{mfcc_dir}/X_val.npy"),   dtype=torch.float32)
+y_vl = torch.tensor(np.load(f"{mfcc_dir}/y_val.npy"),   dtype=torch.long)
+X_te = torch.tensor(np.load(f"{mfcc_dir}/X_test.npy"),  dtype=torch.float32)
+y_te = torch.tensor(np.load(f"{mfcc_dir}/y_test.npy"),  dtype=torch.long)
+
+
+val_loader   = make_loader([X_vl, y_vl])
+test_loader  = make_loader([X_te, y_te])
+
+class CNN1D(nn.Module):
+    def __init__(self, input_dim=120, num_classes=7):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv1d(input_dim, 128, kernel_size=3, padding=1),
+            nn.BatchNorm1d(128), nn.ReLU(), nn.MaxPool1d(2), nn.Dropout(0.3),
+            nn.Conv1d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm1d(256), nn.ReLU(), nn.MaxPool1d(2), nn.Dropout(0.3),
+            nn.Conv1d(256, 256, kernel_size=3, padding=1),
+            nn.BatchNorm1d(256), nn.ReLU(), nn.AdaptiveAvgPool1d(1)
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(256, 128), nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(128, num_classes)
+        )
+    def forward(self, x):
+        return self.classifier(self.encoder(x.permute(0,2,1)).squeeze(-1))
+
+model_cnn = CNN1D().to(device)
+run_test(model_cnn, test_loader,
+         f"{model_dir}/best_speaker_cnn.pt", "MFCC + CNN (Speaker-level)")
+
+#HuBERT+ BiLSTM
+
+X_vl = torch.tensor(np.array(np.memmap(f"{hubert_dir}/X_val.npy",   dtype='float32', mode='r', shape=(700,200,768))),  dtype=torch.float32)
+y_vl = torch.tensor(np.array(np.memmap(f"{hubert_dir}/y_val.npy",   dtype='int32',   mode='r', shape=(700,))),         dtype=torch.long)
+X_te = torch.tensor(np.array(np.memmap(f"{hubert_dir}/X_test.npy",  dtype='float32', mode='r', shape=(700,200,768))),  dtype=torch.float32)
+y_te = torch.tensor(np.array(np.memmap(f"{hubert_dir}/y_test.npy",  dtype='int32',   mode='r', shape=(700,))),         dtype=torch.long)
+
+train_loader = make_loader([X_tr, y_tr], shuffle=True)
+val_loader   = make_loader([X_vl, y_vl])
+test_loader  = make_loader([X_te, y_te])
+
+class HuBERTBiLSTM(nn.Module):
+    def __init__(self, input_dim=768, hidden_dim=128, num_classes=7):
+        super().__init__()
+        self.bilstm = nn.LSTM(input_dim, hidden_dim, num_layers=2,
+                               batch_first=True, bidirectional=True, dropout=0.3)
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_dim*2, 128), nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(128, num_classes)
+        )
+    def forward(self, x):
+        out, _ = self.bilstm(x)
+        return self.classifier(out.mean(dim=1))
+
+model_hubert = HuBERTBiLSTM().to(device)
+
+run_test(model_hubert, test_loader,
+         f"{model_dir}/best_speaker_hubert.pt", "HuBERT + BiLSTM (Speaker-level)")

@@ -101,3 +101,65 @@ with torch.no_grad():
 
 print("\nFusion Test Results:")
 print(classification_report(all_labels, all_preds, target_names=emotion_names))
+
+#=============================================================================================
+
+#speaker level split evaluation
+
+def run_test(model, test_loader, save_path, label):
+    model.load_state_dict(torch.load(save_path))
+    model.eval()
+    preds, labels = [], []
+    with torch.no_grad():
+        for batch in test_loader:
+            inputs, y_b = batch[:-1], batch[-1]
+            inputs = [x.to(device) for x in inputs]
+            preds.extend(model(*inputs).argmax(1).cpu().numpy())
+            labels.extend(y_b.numpy())
+    print(f"\n{'='*50}\nTEST RESULTS — {label}\n{'='*50}")
+    print(classification_report(labels, preds, target_names=emotion_names))
+
+def make_loader(tensors, batch_size=32, shuffle=False):
+    return DataLoader(TensorDataset(*tensors), batch_size=batch_size, shuffle=shuffle)
+
+device        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+emotion_names = ['angry','disgust','fear','happy','neutral','ps','sad']
+hubert_dir    = "/content/drive/MyDrive/tess_speaker_hubert"
+bert_dir      = "/content/drive/MyDrive/tess_speaker_bert"
+model_dir     = "/content/drive/MyDrive/tess_speaker_models"
+
+Xs_vl = torch.tensor(np.array(np.memmap(f"{hubert_dir}/X_val.npy",   dtype='float32', mode='r', shape=(700,200,768))),  dtype=torch.float32)
+Xt_vl = torch.tensor(np.array(np.memmap(f"{bert_dir}/X_val.npy",     dtype='float32', mode='r', shape=(700,768))),      dtype=torch.float32)
+y_vl  = torch.tensor(np.array(np.memmap(f"{hubert_dir}/y_val.npy",   dtype='int32',   mode='r', shape=(700,))),         dtype=torch.long)
+
+Xs_te = torch.tensor(np.array(np.memmap(f"{hubert_dir}/X_test.npy",  dtype='float32', mode='r', shape=(700,200,768))),  dtype=torch.float32)
+Xt_te = torch.tensor(np.array(np.memmap(f"{bert_dir}/X_test.npy",    dtype='float32', mode='r', shape=(700,768))),      dtype=torch.float32)
+y_te  = torch.tensor(np.array(np.memmap(f"{hubert_dir}/y_test.npy",  dtype='int32',   mode='r', shape=(700,))),         dtype=torch.long)
+
+val_loader   = make_loader([Xs_vl, Xt_vl, y_vl])
+test_loader  = make_loader([Xs_te, Xt_te, y_te])
+
+class FusionModel(nn.Module):
+    def __init__(self, num_classes=7):
+        super().__init__()
+        self.speech_encoder = nn.LSTM(768, 128, num_layers=2,
+                                       batch_first=True, bidirectional=True, dropout=0.3)
+        self.text_projection = nn.Sequential(
+            nn.Linear(768, 256), nn.ReLU(), nn.Dropout(0.3)
+        )
+        self.fusion_fc  = nn.Linear(256 + 256, 256)
+        self.classifier = nn.Sequential(
+            nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(256, 128), nn.ReLU(),
+            nn.Linear(128, num_classes)
+        )
+    def forward(self, speech, text):
+        s, _ = self.speech_encoder(speech)
+        s    = s.mean(dim=1)
+        t    = self.text_projection(text)
+        return self.classifier(self.fusion_fc(torch.cat([s, t], dim=-1)))
+
+model_fusion = FusionModel().to(device)
+
+run_test(model_fusion, test_loader,
+         f"{model_dir}/best_speaker_fusion.pt", "Fusion HuBERT+BERT (Speaker-level)")

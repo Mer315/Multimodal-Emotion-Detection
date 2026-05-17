@@ -265,3 +265,189 @@ for epoch in range(1, 21):
         print(f"Epoch {epoch:2d} | Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}")
 
 print(f"\nBest Val Acc: {best_val_acc:.4f}")
+
+
+#===============================================================================================================
+
+#speaker level split
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+# Clean df (same as always)
+df = df.drop_duplicates(subset=['word', 'speaker', 'emotion']).reset_index(drop=True)
+df.loc[df['speaker'] == 'OA', 'speaker'] = 'OAF'
+df['transcript'] = df['word'].apply(lambda w: f"say the word {w}")
+df['label'] = df['emotion'].map({
+    'angry':0, 'disgust':1, 'fear':2,
+    'happy':3, 'neutral':4, 'ps':5, 'sad':6
+})
+
+# Speaker-level split
+train_df = df[df['speaker'] == 'OAF'].reset_index(drop=True)  # 1400 samples
+yaf_df   = df[df['speaker'] == 'YAF'].reset_index(drop=True)  # 1400 samples
+
+# Split YAF 50/50 into val and test
+val_df, test_df = train_test_split(yaf_df, test_size=0.5,
+                                   stratify=yaf_df['label'],
+                                   random_state=42)
+val_df  = val_df.reset_index(drop=True)
+test_df = test_df.reset_index(drop=True)
+
+# Verify
+print(f"Train (OAF): {len(train_df)}")   # expect 1400
+print(f"Val   (YAF): {len(val_df)}")     # expect 700
+print(f"Test  (YAF): {len(test_df)}")    # expect 700
+
+print(f"\nTrain speakers: {train_df['speaker'].unique()}")
+print(f"Val speakers:   {val_df['speaker'].unique()}")
+print(f"Test speakers:  {test_df['speaker'].unique()}")
+
+print(f"\nTrain emotion dist:\n{train_df['emotion'].value_counts()}")
+print(f"Test emotion dist:\n{test_df['emotion'].value_counts()}")
+
+# ── Imports (if running this cell independently) ──
+import os, gc
+import numpy as np
+import torch
+from tqdm import tqdm
+from transformers import BertTokenizer, BertModel
+# drive already mounted; if not: from google.colab import drive; drive.mount('/content/drive')
+
+device    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+bert_dir  = "/content/drive/MyDrive/tess_speaker_bert"
+os.makedirs(bert_dir, exist_ok=True)
+
+splits = [("train", train_df), ("val", val_df), ("test", test_df)]
+
+
+# BERT EXTRACTION
+print("\n=== BERT Extraction ===")
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+bert      = BertModel.from_pretrained('bert-base-uncased')
+bert.eval().to(device)
+
+def preprocess_text(transcript, max_len=10):
+    encoded = tokenizer(
+        transcript.lower(), padding='max_length',
+        truncation=True, max_length=max_len, return_tensors='pt'
+    )
+    return encoded['input_ids'].to(device), encoded['attention_mask'].to(device)
+
+def extract_bert_cls(input_ids, attention_mask):
+    with torch.no_grad():
+        outputs = bert(input_ids=input_ids, attention_mask=attention_mask)
+    return outputs.last_hidden_state[:, 0, :].squeeze(0).cpu().numpy().astype(np.float32)
+
+for split_name, split_df in splits:
+    n = len(split_df)
+    X = np.memmap(f"{bert_dir}/X_{split_name}.npy", dtype='float32', mode='w+', shape=(n, 768))
+    y = np.memmap(f"{bert_dir}/y_{split_name}.npy", dtype='int32',   mode='w+', shape=(n,))
+    skipped = 0
+    for i, (_, row) in enumerate(tqdm(split_df.iterrows(), total=n, desc=split_name)):
+        try:
+            ids, mask = preprocess_text(row['transcript'])
+            X[i] = extract_bert_cls(ids, mask)
+            y[i] = row['label']
+        except Exception as e:
+            print(f"Skip {i}: {e}"); skipped += 1
+        if i % 50 == 0:
+            X.flush(); y.flush()
+    X.flush(); y.flush()
+    gc.collect()
+    X_check = np.memmap(f"{bert_dir}/X_{split_name}.npy", dtype='float32', mode='r', shape=(n, 768))
+    print(f"BERT {split_name}: {X_check.shape}, skipped: {skipped}")
+    del X, y, X_check; gc.collect()
+
+del bert; torch.cuda.empty_cache(); gc.collect()
+print("\n=== Text features saved to Drive ===")
+
+#Training
+import numpy as np
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import classification_report
+# run_training / run_test / make_loader must be defined (run Cell 1 first, or redefine here)
+def run_training(model, train_loader, val_loader, save_path, epochs=30):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
+    best_val  = 0.0
+    for epoch in range(1, epochs + 1):
+        model.train()
+        correct = total = 0
+        for batch in train_loader:
+            inputs, y_b = batch[:-1], batch[-1].to(device)
+            inputs = [x.to(device) for x in inputs]
+            optimizer.zero_grad()
+            out  = model(*inputs)
+            loss = criterion(out, y_b)
+            loss.backward(); optimizer.step()
+            correct += out.argmax(1).eq(y_b).sum().item()
+            total   += y_b.size(0)
+        train_acc = correct / total
+        model.eval(); correct = total = 0
+        with torch.no_grad():
+            for batch in val_loader:
+                inputs, y_b = batch[:-1], batch[-1].to(device)
+                inputs = [x.to(device) for x in inputs]
+                correct += model(*inputs).argmax(1).eq(y_b).sum().item()
+                total   += y_b.size(0)
+        val_acc = correct / total
+        marker = ""
+        if val_acc > best_val:
+            best_val = val_acc
+            torch.save(model.state_dict(), save_path)
+            marker = "  ← Best saved"
+        print(f"Epoch {epoch:2d} | Train: {train_acc:.4f} | Val: {val_acc:.4f}{marker}")
+    print(f"Best Val: {best_val:.4f}\n")
+    return best_val
+
+def run_test(model, test_loader, save_path, label):
+    model.load_state_dict(torch.load(save_path))
+    model.eval()
+    preds, labels = [], []
+    with torch.no_grad():
+        for batch in test_loader:
+            inputs, y_b = batch[:-1], batch[-1]
+            inputs = [x.to(device) for x in inputs]
+            preds.extend(model(*inputs).argmax(1).cpu().numpy())
+            labels.extend(y_b.numpy())
+    print(f"\n{'='*50}\nTEST RESULTS — {label}\n{'='*50}")
+    print(classification_report(labels, preds, target_names=emotion_names))
+
+def make_loader(tensors, batch_size=32, shuffle=False):
+    return DataLoader(TensorDataset(*tensors), batch_size=batch_size, shuffle=shuffle)
+
+
+device        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+emotion_names = ['angry','disgust','fear','happy','neutral','ps','sad']
+bert_dir      = "/content/drive/MyDrive/tess_speaker_bert"
+model_dir     = "/content/drive/MyDrive/tess_speaker_models"
+
+# MODEL 3 — TEXT BERT
+print("\n" + "="*50)
+print("MODEL 3: TEXT BERT")
+print("="*50)
+
+X_tr = torch.tensor(np.array(np.memmap(f"{bert_dir}/X_train.npy", dtype='float32', mode='r', shape=(1400,768))), dtype=torch.float32)
+y_tr = torch.tensor(np.array(np.memmap(f"{bert_dir}/y_train.npy", dtype='int32',   mode='r', shape=(1400,))),   dtype=torch.long)
+
+train_loader = make_loader([X_tr, y_tr], shuffle=True)
+
+class TextClassifier(nn.Module):
+    def __init__(self, input_dim=768, num_classes=7):
+        super().__init__()
+        self.classifier = nn.Sequential(
+            nn.Linear(input_dim, 256), nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(256, 128),       nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(128, num_classes)
+        )
+    def forward(self, x):
+        return self.classifier(x)
+
+model_text = TextClassifier().to(device)
+run_training(model_text, train_loader, val_loader,
+             f"{model_dir}/best_speaker_text.pt", epochs=30)
