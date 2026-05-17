@@ -342,20 +342,6 @@ Current third-party packages used in the repo include:
 - `tqdm`
 - `transformers`
 
-## Current Status
-
-What is already in the repository:
-
-- speech, text, and fusion code
-- trained model checkpoints
-- t-SNE plotting scripts
-- dependency list
-
-What still needs to be packaged cleanly for final submission:
-
-- consolidated accuracy tables for all three variants
-- saved plot images inside a dedicated `Results/plots` folder
-- a separate report document for architecture, experiments, and error analysis
 
 ## Acknowledgment
 
