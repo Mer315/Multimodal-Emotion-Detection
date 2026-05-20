@@ -234,7 +234,7 @@ An important project observation was that an earlier random `80/10/10` split mix
 The `Results/` folder contains scripts for t-SNE visualization of learned representations:
 
 - [Results/word_level_tsne_plots.py](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/Results/word_level_tsne_plots.py)
-- [Results/speaker_level_tsne_plots.py](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/Results/speaker_level_tsne_plots.py)
+- [Results/speaker_split_TSNE_plots.ipynb](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/Results/speaker_split_TSNE_plots.ipynb)
 
 These scripts visualize cluster separability from:
 
