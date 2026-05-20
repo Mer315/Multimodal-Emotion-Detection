@@ -50,7 +50,7 @@ project/
 │       └── test.py
 ├── Results/
 │   ├── speaker_split_TSNE_plots.ipynb
-│   └── word_level_tsne_plots.py
+│   └── word_level_split_TSNE_plots.ipynb
 ├── README.md
 └── requirements.txt
 ```
