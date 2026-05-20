@@ -34,6 +34,15 @@ Each sample is mapped into:
 - an emotion label
 - a transcript in the form `say the word <word>`
 
+## Report and Experiment Artifacts
+
+You can access the main experiment artifacts here:
+
+- Google Drive folder for the project report, extracted features, and trained models:
+  [Project Drive Folder](https://drive.google.com/drive/folders/1lucmFlJ9e5cVgKeMdtfYKR9-bmGnUwXr?usp=sharing)
+- Local report PDF stored in this repository:
+  [MULTIMODAL EMOTION RECOGNITION- report.pdf](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/results/MULTIMODAL%20EMOTION%20RECOGNITION-%20report.pdf)
+
 ## Project Structure
 
 ```text
