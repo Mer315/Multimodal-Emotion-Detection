@@ -49,7 +49,7 @@ project/
 │       ├── train.py
 │       └── test.py
 ├── Results/
-│   ├── speaker_level_tsne_plots.py
+│   ├── speaker_split_TSNE_plots.ipynb
 │   └── word_level_tsne_plots.py
 ├── README.md
 └── requirements.txt
