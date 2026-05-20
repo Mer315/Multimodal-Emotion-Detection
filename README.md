@@ -19,7 +19,7 @@ The seven target classes used throughout the code are:
 - `fear`
 - `happy`
 - `neutral`
-- `ps`
+- `pleasant surprise`
 - `sad`
 
 ## Dataset
