@@ -308,8 +308,8 @@ python models/fusion_pipeline/test.py
 ### 5. Generate plots
 
 ```bash
-python Results/word_level_tsne_plots.py
-python Results/speaker_level_tsne_plots.py
+python Results/word_level_split_TSNE_plots.ipynb
+python Results/speaker_split_TSNE_plots.ipynb
 ```
 
 ## Important Implementation Note
