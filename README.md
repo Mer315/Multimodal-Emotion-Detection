@@ -41,7 +41,7 @@ You can access the main experiment artifacts here:
 - Google Drive folder for the project report, extracted features, and trained models:
   [Project Drive Folder](https://drive.google.com/drive/folders/1lucmFlJ9e5cVgKeMdtfYKR9-bmGnUwXr?usp=sharing)
 - Local report PDF stored in this repository:
-  [MULTIMODAL EMOTION RECOGNITION- report.pdf]()
+  [MULTIMODAL EMOTION RECOGNITION- report.pdf](Results/MULTIMODAL EMOTION RECOGNITION- report.pdf)
 
 ## Project Structure
 
