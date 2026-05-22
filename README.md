@@ -41,7 +41,7 @@ You can access the main experiment artifacts here:
 - Google Drive folder for the project report, extracted features, and trained models:
   [Project Drive Folder](https://drive.google.com/drive/folders/1lucmFlJ9e5cVgKeMdtfYKR9-bmGnUwXr?usp=sharing)
 - Local report PDF stored in this repository:
-  [MULTIMODAL EMOTION RECOGNITION- report.pdf](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/results/MULTIMODAL%20EMOTION%20RECOGNITION-%20report.pdf)
+  [MULTIMODAL EMOTION RECOGNITION- report.pdf]()
 
 ## Project Structure
 
@@ -156,8 +156,8 @@ The final layer predicts one of the seven emotion classes.
 
 Files:
 
-- [models/speech_pipeline/train.py](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/models/speech_pipeline/train.py)
-- [models/speech_pipeline/test.py](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/models/speech_pipeline/test.py)
+- models/speech_pipeline/train.py
+- models/speech_pipeline/test.py
 
 What is implemented:
 
@@ -180,8 +180,8 @@ Speaker-level speech experiments also include MFCC augmentation for robustness.
 
 Files:
 
-- [models/text_pipeline/train.py](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/models/text_pipeline/train.py)
-- [models/text_pipeline/test.py](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/models/text_pipeline/test.py)
+- models/text_pipeline/train.py
+- models/text_pipeline/test.py
 
 What is implemented:
 
@@ -196,9 +196,9 @@ What is implemented:
 
 Files:
 
-- [models/fusion_pipeline/train.py](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/models/fusion_pipeline/train.py)
-- [models/fusion_pipeline/test.py](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/models/fusion_pipeline/test.py)
-
+- models/fusion_pipeline/train.py
+- models/fusion_pipeline/test.py
+  
 What is implemented:
 
 - loading precomputed HuBERT speech features
@@ -242,8 +242,8 @@ An important project observation was that an earlier random `80/10/10` split mix
 
 The `Results/` folder contains scripts for t-SNE visualization of learned representations:
 
-- [Results/word_level_split_TSNE_plots.ipynb](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/Results/word_level_split_TSNE_plots.ipynb)
-- [Results/speaker_split_TSNE_plots.ipynb](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/Results/speaker_split_TSNE_plots.ipynb)
+- Results/word_level_split_TSNE_plots.ipynb
+- Results/speaker_split_TSNE_plots.ipynb
 
 These scripts visualize cluster separability from:
 
@@ -335,7 +335,7 @@ So before running locally, you will likely need to:
 
 ## Dependencies
 
-Dependencies are listed in [requirements.txt](/abs/path/c:/Users/ssume/Downloads/Multimodal-Emotion-Detection/requirements.txt).
+Dependencies are listed in requirements.txt
 
 Current third-party packages used in the repo include:
 
